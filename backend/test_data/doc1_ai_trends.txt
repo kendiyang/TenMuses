@@ -1,0 +1,27 @@
+# 测试文档 1: AI Trends 2024
+
+## Large Language Models
+
+The development of large language models continues to accelerate in 2024. Models like GPT-4, Claude, and open-source alternatives are becoming more capable and efficient.
+
+### Key Trends:
+- Multimodal capabilities (text, image, audio)
+- Improved reasoning and planning abilities
+- Better context understanding and memory
+- Cost reduction and efficiency improvements
+
+## LangGraph Framework
+
+LangGraph has emerged as a powerful framework for building stateful, multi-agent AI applications. It enables:
+- Complex workflow orchestration
+- Human-in-the-loop interactions
+- State management and checkpointing
+- Dynamic agent collaboration
+
+## RAG (Retrieval-Augmented Generation)
+
+RAG continues to be a critical technique for grounding LLMs in specific knowledge bases. Improvements include:
+- Better chunking strategies
+- Hybrid search (vector + keyword)
+- Reranking and relevance scoring
+- Context compression techniques

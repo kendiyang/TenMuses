@@ -1,0 +1,30 @@
+# 测试文档 2: LangGraph Best Practices
+
+## State Management
+- Define clear TypedDict schemas for state
+- Use State annotations for reducers
+- Keep state minimal and focused
+
+## Node Design
+- Each node should have a single responsibility
+- Use async functions for I/O operations
+- Handle errors gracefully with try-except
+- Emit events for observability
+
+## Graph Structure
+- Use conditional edges for dynamic routing
+- Leverage interrupt_before for HITL
+- Implement proper START/END connections
+- Consider subgraphs for complex workflows
+
+## Checkpointing
+- Use PostgresCheckpointer for production
+- Configure appropriate checkpoint_ns
+- Handle checkpoint recovery scenarios
+- Test time-travel functionality
+
+## Streaming
+- Use astream_events for real-time updates
+- Handle different event types appropriately
+- Implement proper error propagation
+- Provide user feedback during execution

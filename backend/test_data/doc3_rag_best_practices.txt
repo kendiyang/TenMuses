@@ -1,0 +1,28 @@
+# 测试文档 3: RAG Implementation Guide
+
+## Document Processing
+1. **Upload**: Accept files, URLs, or text
+2. **Extract**: Parse content from various formats
+3. **Chunk**: Split into optimal sizes (500-1000 tokens)
+4. **Embed**: Generate vector embeddings
+5. **Index**: Store in vector database
+
+## Retrieval Strategies
+- **Semantic Search**: Vector similarity (cosine, dot product)
+- **Keyword Search**: BM25 or full-text search
+- **Hybrid Search**: Combine semantic + keyword
+- **Reranking**: Use cross-encoder for final scoring
+
+## Context Injection
+- Retrieve top-k relevant chunks
+- Filter by minimum relevance score
+- Format context clearly for LLM
+- Handle context length limits
+- Cite sources in responses
+
+## Best Practices
+- Test different chunk sizes
+- Tune retrieval parameters (top_k, min_score)
+- Monitor retrieval quality metrics
+- Implement caching for performance
+- Handle multilingual content
