@@ -19,18 +19,23 @@ export interface StreamOptions {
 
 export class CopilotStreamClient {
   private baseURL: string
-  private token: string | null
 
   constructor(baseURL: string = '/api/v1/copilot') {
     // 如果提供的是相对路径，需要添加后端URL前缀
     if (baseURL.startsWith('/')) {
-      // 优先使用后端直接URL，默认为 http://localhost:8000
-      const apiURL = 'http://localhost:8000'
+      // 读取前端配置的 API 根地址，回退到当前页面 origin，再回退本地默认值
+      const apiURL =
+        (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) ||
+        (typeof window !== 'undefined' ? `${window.location.origin.replace(/:\d+$/, ':8000')}` : 'http://localhost:8000')
       this.baseURL = `${apiURL}${baseURL}`
     } else {
       this.baseURL = baseURL
     }
-    this.token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
+  }
+
+  private getToken(): string | null {
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem('accessToken')
   }
 
   /**
@@ -74,7 +79,7 @@ export class CopilotStreamClient {
 
     const headers = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.token}`,
+      'Authorization': `Bearer ${this.getToken()}`,
       ...options?.headers,
     }
 
@@ -107,7 +112,7 @@ export class CopilotStreamClient {
     options?: StreamOptions
   ): Promise<void> {
     const headers = {
-      'Authorization': `Bearer ${this.token}`,
+      'Authorization': `Bearer ${this.getToken()}`,
       ...options?.headers,
     }
 

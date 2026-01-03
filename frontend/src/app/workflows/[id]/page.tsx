@@ -14,13 +14,11 @@ import ExecutionPanel from '@/components/workflow/ExecutionPanel'
 import { CopilotPanel } from '@/components/workflow/CopilotPanel'
 import PublishTemplateDialog from '@/components/dialog/PublishTemplateDialog'
 import ShareWorkflowDialog from '@/components/dialog/ShareWorkflowDialog'
-import { Save, Play, Settings, Sparkles, BarChart3, PanelLeft, PanelLeftOpen, PanelRight, PanelRightOpen, Share2, Upload, Home, ChevronDown } from 'lucide-react'
+import { Save, Play, Settings, Sparkles, BarChart3, PanelLeft, PanelLeftOpen, Share2, Upload, Home, ChevronDown, Edit3, Activity } from 'lucide-react'
 
 interface PageProps {
   params: { id: string }
 }
-
-type RightPanelTab = 'properties' | 'execution' | 'copilot'
 
 export default function WorkflowPage({ params }: PageProps) {
   const { id } = params
@@ -33,9 +31,8 @@ export default function WorkflowPage({ params }: PageProps) {
   const [saving, setSaving] = useState(false)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [threadId, setThreadId] = useState<string | null>(null)
-  const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>('execution')
+  const [canvasTab, setCanvasTab] = useState<'editor' | 'execution'>('editor')
   const [showLeftPanel, setShowLeftPanel] = useState(true)
-  const [showRightPanel, setShowRightPanel] = useState(true)
   const [showPublishDialog, setShowPublishDialog] = useState(false)
   const [showShareDialog, setShowShareDialog] = useState(false)
   
@@ -288,19 +285,32 @@ export default function WorkflowPage({ params }: PageProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Left Sidebar - Node Toolbar */}
+        {/* Left Sidebar - Copilot Only */}
         {showLeftPanel && (
-          <div className="w-64 border-r border-border overflow-y-auto relative">
-            <div className="absolute top-2 right-2 z-10">
+          <div className="w-64 border-r border-border flex flex-col overflow-hidden relative">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-1 border-b border-border px-2 py-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span className="text-xs font-medium">Copilot</span>
+              </div>
               <button
                 onClick={() => setShowLeftPanel(false)}
-                className="flex items-center gap-1 rounded border border-border bg-white/90 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-primary shadow-sm"
+                className="p-1 text-gray-500 hover:text-gray-900 transition-colors hover:bg-gray-100 rounded"
+                title="隐藏左栏"
               >
                 <PanelLeft className="w-4 h-4" />
-                隐藏
               </button>
             </div>
-            <NodeToolbar />
+
+            {/* Tab Content */}
+            <div className="flex-1 overflow-y-auto">
+              <CopilotPanel
+                workflowId={id}
+                onNodeApply={handleNodeApply}
+                onWorkflowApply={handleWorkflowApply}
+              />
+            </div>
           </div>
         )}
 
@@ -314,100 +324,75 @@ export default function WorkflowPage({ params }: PageProps) {
           </button>
         )}
 
-        {/* Canvas */}
-        <div className="flex-1 relative">
-          <WorkflowCanvas onNodeSelect={setSelectedNodeId} />
-        </div>
-
-        {/* Right Sidebar - Properties, Execution, or Copilot */}
-        {showRightPanel && (
-          <div className="w-80 border-l border-border flex flex-col overflow-hidden relative">
-            {/* Tab Navigation */}
-            <div className="flex border-b border-border bg-muted/50 items-center">
-            {/* Properties Tab */}
-            {selectedNodeId && (
+        {/* Canvas Area with Top Tabs */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Canvas Top Bar - Editor / Execution Tabs */}
+          <div className="flex items-center justify-center border-b border-border py-2 px-4">
+            <div className="inline-flex items-center bg-gray-100 rounded-md p-0.5">
               <button
-                onClick={() => setRightPanelTab('properties')}
-                className={`flex-1 py-2 px-3 text-xs font-medium transition-colors flex items-center justify-center gap-2 border-b-2 -mb-px ${
-                  rightPanelTab === 'properties'
-                    ? 'text-foreground border-primary bg-background'
-                    : 'text-muted-foreground border-transparent hover:text-foreground'
+                onClick={() => setCanvasTab('editor')}
+                className={`py-1 px-3 text-sm font-medium transition-all rounded ${
+                  canvasTab === 'editor'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <Settings className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Properties</span>
+                Editor
               </button>
-            )}
-
-            {/* Execution Tab */}
-            <button
-              onClick={() => setRightPanelTab('execution')}
-              className={`flex-1 py-2 px-3 text-xs font-medium transition-colors flex items-center justify-center gap-2 border-b-2 -mb-px ${
-                rightPanelTab === 'execution'
-                  ? 'text-foreground border-primary bg-background'
-                  : 'text-muted-foreground border-transparent hover:text-foreground'
-              }`}
-            >
-              <BarChart3 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Execution</span>
-            </button>
-
-            {/* Copilot Tab */}
-            <button
-              onClick={() => setRightPanelTab('copilot')}
-              className={`flex-1 py-2 px-3 text-xs font-medium transition-colors flex items-center justify-center gap-2 border-b-2 -mb-px ${
-                rightPanelTab === 'copilot'
-                  ? 'text-foreground border-primary bg-background'
-                  : 'text-muted-foreground border-transparent hover:text-foreground'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Copilot</span>
-            </button>
-
               <button
-                onClick={() => setShowRightPanel(false)}
-                className="px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
-                title="隐藏右栏"
+                onClick={() => setCanvasTab('execution')}
+                className={`py-1 px-3 text-sm font-medium transition-all rounded ${
+                  canvasTab === 'execution'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
               >
-                <PanelRight className="w-4 h-4" />
+                Execution
               </button>
             </div>
+          </div>
 
-            {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto">
-              {rightPanelTab === 'properties' && selectedNodeId && (
-                <PropertiesPanel nodeId={selectedNodeId} />
-              )}
+          {/* Canvas Content */}
+          <div className="flex-1 relative flex overflow-hidden">
+            {canvasTab === 'editor' && (
+              <>
+                <div className="flex-1 relative">
+                  <WorkflowCanvas onNodeSelect={setSelectedNodeId} />
+                </div>
+                
+                {/* Properties Panel (only shown when node selected) */}
+                {selectedNodeId && (
+                  <div className="w-80 border-l border-border overflow-y-auto">
+                    <div className="p-3 border-b border-border bg-muted/50 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Settings className="w-4 h-4" />
+                        <span className="text-sm font-medium">Properties</span>
+                      </div>
+                      <button
+                        onClick={() => setSelectedNodeId(null)}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        title="关闭"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <PropertiesPanel nodeId={selectedNodeId} />
+                  </div>
+                )}
+              </>
+            )}
 
-              {rightPanelTab === 'execution' && (
+            {canvasTab === 'execution' && (
+              <div className="flex-1 overflow-hidden">
                 <ExecutionPanel
                   isConnected={isConnected}
                   isExecuting={isExecuting}
                   logs={logs}
                 />
-              )}
-
-              {rightPanelTab === 'copilot' && (
-                <CopilotPanel
-                  workflowId={id}
-                  onNodeApply={handleNodeApply}
-                  onWorkflowApply={handleWorkflowApply}
-                />
-              )}
-            </div>
+              </div>
+            )}
           </div>
-        )}
-
-        {!showRightPanel && (
-          <button
-            onClick={() => setShowRightPanel(true)}
-            className="absolute right-3 top-3 z-20 flex items-center gap-1 rounded border border-border bg-white/95 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-primary shadow"
-          >
-            <PanelRightOpen className="w-4 h-4" />
-            展开右栏
-          </button>
-        )}
+        </div>
       </div>
 
       {/* Publish Template Dialog */}

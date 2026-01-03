@@ -23,34 +23,15 @@ export function useCopilotStream(options?: UseCopilotStreamOptions) {
   const handleStreamEvent = useCallback((event: StreamEvent) => {
     switch (event.type) {
       case 'connected':
+      case 'suggestion_started':
+      case 'diagnosis_started':
         setCurrentMessage('')
         setError(null)
         break
 
       case 'token':
-        if (event.content) {
-          setCurrentMessage(prev => prev + event.content)
-          options?.onMessageUpdate?.(currentMessage + event.content)
-        }
-        break
-
-      case 'chat_completed':
-        setIsLoading(false)
-        options?.onComplete?.()
-        break
-
+      case 'workflow':
       case 'suggestion_token':
-        if (event.content) {
-          setCurrentMessage(prev => prev + event.content)
-          options?.onMessageUpdate?.(currentMessage + event.content)
-        }
-        break
-
-      case 'suggestion_completed':
-        setIsLoading(false)
-        options?.onComplete?.()
-        break
-
       case 'diagnosis_token':
         if (event.content) {
           setCurrentMessage(prev => prev + event.content)
@@ -58,6 +39,8 @@ export function useCopilotStream(options?: UseCopilotStreamOptions) {
         }
         break
 
+      case 'chat_completed':
+      case 'suggestion_completed':
       case 'diagnosis_completed':
         setIsLoading(false)
         options?.onComplete?.()
@@ -71,7 +54,16 @@ export function useCopilotStream(options?: UseCopilotStreamOptions) {
         break
 
       default:
-        // 其他事件类型
+        // 处理任何其他包含 content 字段的事件类型
+        if (event.content) {
+          setCurrentMessage(prev => prev + event.content)
+          options?.onMessageUpdate?.(currentMessage + event.content)
+        }
+        // 如果事件有 finished 标记为真，则完成
+        if (event.finished === true) {
+          setIsLoading(false)
+          options?.onComplete?.()
+        }
         break
     }
   }, [currentMessage, options])

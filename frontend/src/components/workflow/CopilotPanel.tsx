@@ -112,9 +112,23 @@ export function CopilotPanel({
   }, [messages])
 
   const handleSend = async () => {
-    if (!inputValue.trim() || isLoading) return
+    if (!inputValue.trim()) return
 
-    // 获取工作流上下文
+    // 流式模式下走流式接口，不要投递到对话历史
+    if (activeTab === 'stream') {
+      if (streamLoading) return
+      try {
+        await streamWorkflowSuggestions(inputValue)
+      } catch (err) {
+        console.error('Stream send failed:', err)
+      }
+      setInputValue('')
+      return
+    }
+
+    // 对话模式
+    if (isLoading) return
+
     const workflowContext = getContext()
 
     await sendMessage(inputValue, {
@@ -561,59 +575,90 @@ export function CopilotPanel({
 
           {/* 流式标签页 */}
           {activeTab === 'stream' && (
-            <div className="flex flex-col flex-1 min-h-0">
+            <div className="flex flex-col flex-1 min-h-0 bg-white">
               {/* 流式内容显示 */}
-              <div className="flex-1 overflow-auto p-4 bg-white">
-                <CopilotStreamDisplay
-                  content={currentMessage}
-                  isLoading={streamLoading}
-                  error={streamError}
-                  onCancel={cancelStream}
-                />
+              <div className="flex-1 overflow-auto p-4 border-b border-gray-200">
+                {currentMessage || streamLoading ? (
+                  <CopilotStreamDisplay
+                    content={currentMessage}
+                    isLoading={streamLoading}
+                    error={streamError}
+                    onCancel={cancelStream}
+                  />
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-center">
+                    <Zap className="w-12 h-12 text-gray-300 mb-3" />
+                    <p className="text-gray-500 text-sm mb-4">选择快速操作或输入自定义问题</p>
+                    <div className="grid grid-cols-1 gap-2 w-full">
+                      <button
+                        onClick={() => handleStreamQuickAction('suggest')}
+                        className="px-4 py-3 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                      >
+                        <Lightbulb className="w-4 h-4" />
+                        建议改进
+                      </button>
+                      <button
+                        onClick={() => handleStreamQuickAction('diagnose')}
+                        className="px-4 py-3 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                      >
+                        <AlertCircle className="w-4 h-4" />
+                        诊断问题
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* 快速操作 */}
-              <div className="border-t p-3 bg-gray-50 space-y-2">
-                <p className="text-xs font-semibold text-gray-700">快速操作</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => handleStreamQuickAction('suggest')}
-                    disabled={streamLoading}
-                    className={cn(
-                      'px-3 py-2 rounded text-xs font-medium transition-colors',
-                      streamLoading
-                        ? 'bg-gray-200 text-gray-400'
-                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                    )}
-                  >
-                    💡 建议改进
-                  </button>
-                  <button
-                    onClick={() => handleStreamQuickAction('diagnose')}
-                    disabled={streamLoading}
-                    className={cn(
-                      'px-3 py-2 rounded text-xs font-medium transition-colors',
-                      streamLoading
-                        ? 'bg-gray-200 text-gray-400'
-                        : 'bg-green-100 text-green-700 hover:bg-green-200'
-                    )}
-                  >
-                    🔍 流式诊断
-                  </button>
+              {/* 输入区域 */}
+              <div className="border-t border-gray-200 p-3 bg-white">
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="输入自定义问题或按 Enter 发送..."
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey && !streamLoading) {
+                          e.preventDefault()
+                          handleSend()
+                        }
+                      }}
+                      disabled={streamLoading}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400 text-sm"
+                    />
+                    <button
+                      onClick={() => {
+                        setInputValue('')
+                        resetStream()
+                      }}
+                      className="px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                      title="清除"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  {/* 快速操作 */}
+                  {!streamLoading && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => handleStreamQuickAction('suggest')}
+                        className="px-3 py-2 rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 hover:from-blue-100 hover:to-blue-200 transition-colors text-xs font-medium flex items-center justify-center gap-1"
+                      >
+                        <Lightbulb className="w-3 h-3" />
+                        建议改进
+                      </button>
+                      <button
+                        onClick={() => handleStreamQuickAction('diagnose')}
+                        className="px-3 py-2 rounded-lg bg-gradient-to-r from-green-50 to-green-100 text-green-700 hover:from-green-100 hover:to-green-200 transition-colors text-xs font-medium flex items-center justify-center gap-1"
+                      >
+                        <AlertCircle className="w-3 h-3" />
+                        诊断问题
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
-
-              {/* 控制按钮 */}
-              <div className="border-t p-3 bg-white rounded-b-lg">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full text-xs"
-                  onClick={resetStream}
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  清除响应
-                </Button>
               </div>
             </div>
           )}

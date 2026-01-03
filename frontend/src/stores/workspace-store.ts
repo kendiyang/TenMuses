@@ -1,7 +1,5 @@
 import { create } from 'zustand';
-import axios from 'axios';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { apiClient } from '@/lib/api-client';
 
 export interface WorkflowSummary {
   id: string;
@@ -71,21 +69,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set({ isLoadingOverview: true, overviewError: null });
     
     try {
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        throw new Error('No access token found');
-      }
-
-      const response = await axios.get(`${API_URL}/api/v1/workspace`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
+      const data = await apiClient.get<any>('/workspace');
+      
       set({
-        recentWorkflows: response.data.recent_workflows || [],
-        statistics: response.data.statistics || null,
-        featuredTemplates: response.data.featured_templates || [],
+        recentWorkflows: data.recent_workflows || [],
+        statistics: data.statistics || null,
+        featuredTemplates: data.featured_templates || [],
         isLoadingOverview: false,
       });
     } catch (error: any) {
@@ -101,20 +90,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set({ isLoadingRecent: true, recentError: null });
     
     try {
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        throw new Error('No access token found');
-      }
-
-      const response = await axios.get(`${API_URL}/api/v1/workspace/recent`, {
-        params: { limit },
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const data = await apiClient.get<any>('/workspace/recent', { limit });
 
       set({
-        recentWorkflows: response.data || [],
+        recentWorkflows: data || [],
         isLoadingRecent: false,
       });
     } catch (error: any) {

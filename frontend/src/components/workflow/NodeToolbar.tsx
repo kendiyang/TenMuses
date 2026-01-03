@@ -73,16 +73,6 @@ export default function NodeToolbar() {
           )
         })}
       </div>
-
-      <div className="mt-6 p-4 bg-muted rounded-lg">
-        <h3 className="text-sm font-semibold mb-2">Quick Tips</h3>
-        <ul className="text-xs text-muted-foreground space-y-1">
-          <li>• Click a node to add it to the canvas</li>
-          <li>• Drag from handles to connect nodes</li>
-          <li>• Select a node to edit its properties</li>
-          <li>• Click Run to execute the workflow</li>
-        </ul>
-      </div>
     </div>
   )
 }
