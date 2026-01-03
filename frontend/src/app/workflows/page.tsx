@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, Workflow as WorkflowIcon, Search, Filter, X, Trash2, Copy } from 'lucide-react'
+import { Plus, Workflow as WorkflowIcon, Search, Filter, X, Trash2, Copy, Home, ArrowLeft } from 'lucide-react'
 import { apiClient } from '@/lib/api-client'
 import { Workflow } from '@/types/workflow'
 import { useAuthStore } from '@/stores/auth-store'
@@ -168,6 +168,17 @@ export default function WorkflowsPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
+        {/* Navigation Header */}
+        <div className="mb-6">
+          <button
+            onClick={() => router.push('/workspace')}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors font-medium"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Workspace
+          </button>
+        </div>
+        
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">My Workflows</h1>
           <button

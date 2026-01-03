@@ -14,7 +14,7 @@ import ExecutionPanel from '@/components/workflow/ExecutionPanel'
 import { CopilotPanel } from '@/components/workflow/CopilotPanel'
 import PublishTemplateDialog from '@/components/dialog/PublishTemplateDialog'
 import ShareWorkflowDialog from '@/components/dialog/ShareWorkflowDialog'
-import { Save, Play, Settings, Sparkles, BarChart3, PanelLeft, PanelLeftOpen, PanelRight, PanelRightOpen, Share2, Upload } from 'lucide-react'
+import { Save, Play, Settings, Sparkles, BarChart3, PanelLeft, PanelLeftOpen, PanelRight, PanelRightOpen, Share2, Upload, Home, ChevronDown } from 'lucide-react'
 
 interface PageProps {
   params: { id: string }
@@ -209,12 +209,45 @@ export default function WorkflowPage({ params }: PageProps) {
       {/* Header */}
       <div className="h-14 border-b border-border flex items-center justify-between px-4">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push('/workflows')}
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            ← Back
-          </button>
+          {/* Home/Workspace Navigation Dropdown */}
+          <div className="relative group">
+            <button
+              onClick={() => router.push('/workspace')}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border hover:bg-accent transition-colors"
+              title="Return to Workspace"
+            >
+              <Home className="w-4 h-4" />
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            
+            {/* Dropdown menu */}
+            <div className="absolute left-0 top-full mt-1 hidden group-hover:block z-50">
+              <div className="bg-background border border-border rounded-lg shadow-xl py-1 min-w-[160px]">
+                <button
+                  onClick={() => router.push('/workspace')}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors flex items-center gap-2"
+                >
+                  <Home className="w-4 h-4" />
+                  Workspace
+                </button>
+                <button
+                  onClick={() => router.push('/workflows')}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors"
+                >
+                  My Workflows
+                </button>
+                <button
+                  onClick={() => router.push('/marketplace')}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors"
+                >
+                  Marketplace
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div className="h-6 w-px bg-border"></div>
+          
           <h1 className="text-lg font-semibold">{workflow.title}</h1>
         </div>
         
