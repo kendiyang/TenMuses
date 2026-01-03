@@ -7,6 +7,7 @@ class WorkflowBase(BaseModel):
     title: str
     description: Optional[str] = None
     is_public: bool = False
+    tags: Optional[List[str]] = None
 
 class WorkflowCreate(WorkflowBase):
     canvas_json: Optional[Dict[str, Any]] = None
@@ -17,17 +18,24 @@ class WorkflowUpdate(BaseModel):
     description: Optional[str] = None
     canvas_json: Optional[Dict[str, Any]] = None
     is_public: Optional[bool] = None
+    tags: Optional[List[str]] = None
+    status: Optional[str] = None
 
 class WorkflowResponse(WorkflowBase):
     id: UUID
     owner_id: UUID
     canvas_json: Dict[str, Any]
     source_template_id: Optional[UUID] = None
+    status: str
+    last_run_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
     
     class Config:
         from_attributes = True
+
+class BatchDeleteRequest(BaseModel):
+    workflow_ids: List[UUID]
 
 class WorkflowRunCreate(BaseModel):
     input: str

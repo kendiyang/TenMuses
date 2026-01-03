@@ -1,6 +1,21 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useAuthStore } from '@/stores/auth-store'
 
 export default function Home() {
+  const router = useRouter()
+  const { isAuthenticated } = useAuthStore()
+
+  useEffect(() => {
+    // 如果已登录，重定向到 workspace
+    if (isAuthenticated) {
+      router.push('/workspace')
+    }
+  }, [isAuthenticated, router])
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
       <div className="text-center">
@@ -12,7 +27,7 @@ export default function Home() {
         </p>
         <div className="flex gap-4 justify-center">
           <Link
-            href="/workflows"
+            href="/workspace"
             className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
           >
             Get Started

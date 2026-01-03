@@ -12,7 +12,9 @@ import NodeToolbar from '@/components/workflow/NodeToolbar'
 import PropertiesPanel from '@/components/workflow/PropertiesPanel'
 import ExecutionPanel from '@/components/workflow/ExecutionPanel'
 import { CopilotPanel } from '@/components/workflow/CopilotPanel'
-import { Save, Play, Settings, Sparkles, BarChart3, PanelLeft, PanelLeftOpen, PanelRight, PanelRightOpen } from 'lucide-react'
+import PublishTemplateDialog from '@/components/dialog/PublishTemplateDialog'
+import ShareWorkflowDialog from '@/components/dialog/ShareWorkflowDialog'
+import { Save, Play, Settings, Sparkles, BarChart3, PanelLeft, PanelLeftOpen, PanelRight, PanelRightOpen, Share2, Upload } from 'lucide-react'
 
 interface PageProps {
   params: { id: string }
@@ -34,6 +36,8 @@ export default function WorkflowPage({ params }: PageProps) {
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>('execution')
   const [showLeftPanel, setShowLeftPanel] = useState(true)
   const [showRightPanel, setShowRightPanel] = useState(true)
+  const [showPublishDialog, setShowPublishDialog] = useState(false)
+  const [showShareDialog, setShowShareDialog] = useState(false)
   
   const { isConnected, isExecuting, logs, connect, startExecution } = useWorkflowExecution(threadId)
 
@@ -224,6 +228,22 @@ export default function WorkflowPage({ params }: PageProps) {
             {saving ? 'Saving...' : 'Save'}
           </button>
           <button
+            onClick={() => setShowPublishDialog(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm border border-border rounded-lg hover:bg-accent transition-colors"
+            title="Publish this workflow as a template for others to use"
+          >
+            <Upload className="w-4 h-4" />
+            <span className="hidden sm:inline">Publish</span>
+          </button>
+          <button
+            onClick={() => setShowShareDialog(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm border border-border rounded-lg hover:bg-accent transition-colors"
+            title="Share this workflow with others via link"
+          >
+            <Share2 className="w-4 h-4" />
+            <span className="hidden sm:inline">Share</span>
+          </button>
+          <button
             onClick={runWorkflow}
             className="flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
           >
@@ -356,6 +376,31 @@ export default function WorkflowPage({ params }: PageProps) {
           </button>
         )}
       </div>
+
+      {/* Publish Template Dialog */}
+      {showPublishDialog && workflow && (
+        <PublishTemplateDialog
+          workflowId={id}
+          workflowTitle={workflow.title}
+          onClose={() => setShowPublishDialog(false)}
+          onSuccess={() => {
+            // Optionally reload workflow or show success message
+            loadWorkflow()
+          }}
+        />
+      )}
+
+      {/* Share Workflow Dialog */}
+      {showShareDialog && workflow && (
+        <ShareWorkflowDialog
+          workflowId={id}
+          workflowTitle={workflow.title}
+          onClose={() => setShowShareDialog(false)}
+          onSuccess={() => {
+            // Dialog will handle success state
+          }}
+        />
+      )}
     </div>
   )
 }

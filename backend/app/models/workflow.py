@@ -1,10 +1,15 @@
-from sqlalchemy import Column, String, Text, Boolean, DateTime, ForeignKey, Enum
+from sqlalchemy import Column, String, Text, Boolean, DateTime, ForeignKey, ARRAY
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from datetime import datetime
 import uuid
 import enum
 
 from app.core.database import Base
+
+class WorkflowStatus(str, enum.Enum):
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    RUNNING = "running"
 
 class Workflow(Base):
     __tablename__ = "workflows"
@@ -16,6 +21,9 @@ class Workflow(Base):
     canvas_json = Column(JSONB, nullable=False, default=dict)
     source_template_id = Column(UUID(as_uuid=True), nullable=True)
     is_public = Column(Boolean, default=False, nullable=False)
+    tags = Column(ARRAY(String), nullable=True, default=list)
+    status = Column(String, default=WorkflowStatus.DRAFT.value, nullable=False)
+    last_run_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
@@ -31,7 +39,7 @@ class WorkflowRun(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     workflow_id = Column(UUID(as_uuid=True), ForeignKey("workflows.id"), nullable=False)
     thread_id = Column(UUID(as_uuid=True), nullable=False, unique=True)
-    status = Column(Enum(RunStatus), default=RunStatus.RUNNING, nullable=False)
+    status = Column(String, default=RunStatus.RUNNING.value, nullable=False)
     input_summary = Column(Text, nullable=True)
     started_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     finished_at = Column(DateTime, nullable=True)

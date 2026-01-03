@@ -7,6 +7,7 @@ from typing import List
 
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.core.cache import cache_service, CacheKeys, CacheTTL
 from app.models.user import User
 from app.models.llm_provider import LLMProvider
 from app.models.llm_model import LLMModel
@@ -33,6 +34,12 @@ async def list_providers(
     Returns:
         List[Provider]: 供应商列表
     """
+    # Check cache first
+    cache_key = CacheKeys.llm_providers()
+    cached_data = await cache_service.get(cache_key)
+    if cached_data and active_only:
+        return cached_data
+    
     query = select(LLMProvider).order_by(LLMProvider.priority)
     
     if active_only:
@@ -41,7 +48,7 @@ async def list_providers(
     result = await db.execute(query)
     providers = result.scalars().all()
     
-    return [
+    response = [
         {
             "id": str(provider.id),
             "name": provider.name,
@@ -56,6 +63,16 @@ async def list_providers(
         }
         for provider in providers
     ]
+    
+    # Cache the result (only for active_only=True)
+    if active_only:
+        await cache_service.set(
+            cache_key,
+            response,
+            ttl=CacheTTL.LLM_PROVIDERS
+        )
+    
+    return response
 
 
 @router.get("/providers/{provider_id}")

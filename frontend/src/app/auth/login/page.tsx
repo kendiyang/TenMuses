@@ -27,7 +27,7 @@ export default function LoginPage() {
       
       apiClient.setToken(response.access_token)
       setUser(response.user)
-      router.push('/workflows')
+      router.push('/workspace')
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Login failed')
     } finally {

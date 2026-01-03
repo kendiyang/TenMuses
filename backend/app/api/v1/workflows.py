@@ -8,13 +8,16 @@ import asyncio
 from app.core.database import get_db, AsyncSessionLocal
 from app.models.user import User
 from app.models.workflow import Workflow, WorkflowRun, RunStatus
+from app.models.template import Template
 from app.schemas.workflow import (
     WorkflowCreate,
     WorkflowUpdate,
     WorkflowResponse,
     WorkflowRunCreate,
-    WorkflowRunResponse
+    WorkflowRunResponse,
+    BatchDeleteRequest
 )
+from app.schemas.template import TemplateCreate, TemplateResponse
 from app.api.v1.auth import get_current_user
 from app.api.v1.websocket import manager
 from app.services.langgraph_service import langgraph_service
@@ -46,7 +49,8 @@ async def create_workflow(
         description=workflow_data.description,
         canvas_json=workflow_data.canvas_json or {"nodes": [], "edges": [], "viewport": {"x": 0, "y": 0, "zoom": 1}},
         source_template_id=workflow_data.source_template_id,
-        is_public=workflow_data.is_public
+        is_public=workflow_data.is_public,
+        tags=workflow_data.tags or []
     )
     
     db.add(workflow)
@@ -109,6 +113,11 @@ async def update_workflow(
         workflow.canvas_json = workflow_data.canvas_json
     if workflow_data.is_public is not None:
         workflow.is_public = workflow_data.is_public
+    if workflow_data.tags is not None:
+        workflow.tags = workflow_data.tags
+    if workflow_data.status is not None:
+        from app.models.workflow import WorkflowStatus
+        workflow.status = WorkflowStatus(workflow_data.status).value
     
     await db.commit()
     await db.refresh(workflow)
@@ -139,6 +148,131 @@ async def delete_workflow(
     await db.delete(workflow)
     await db.commit()
 
+@router.post("/batch-delete", status_code=status.HTTP_204_NO_CONTENT)
+async def batch_delete_workflows(
+    request: BatchDeleteRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Batch delete multiple workflows."""
+    if not request.workflow_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No workflow IDs provided"
+        )
+    
+    # Fetch workflows to verify ownership
+    result = await db.execute(
+        select(Workflow).where(
+            Workflow.id.in_(request.workflow_ids),
+            Workflow.owner_id == current_user.id
+        )
+    )
+    workflows = result.scalars().all()
+    
+    # Delete all found workflows
+    for workflow in workflows:
+        await db.delete(workflow)
+    
+    await db.commit()
+
+@router.post("/{workflow_id}/duplicate", response_model=WorkflowResponse, status_code=status.HTTP_201_CREATED)
+async def duplicate_workflow(
+    workflow_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Duplicate an existing workflow."""
+    # Get original workflow
+    result = await db.execute(
+        select(Workflow).where(
+            Workflow.id == workflow_id,
+            Workflow.owner_id == current_user.id
+        )
+    )
+    original = result.scalar_one_or_none()
+    
+    if not original:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workflow not found"
+        )
+    
+    # Create duplicate with new ID
+    import copy
+    duplicate = Workflow(
+        owner_id=current_user.id,
+        title=f"{original.title} (Copy)",
+        description=original.description,
+        canvas_json=copy.deepcopy(original.canvas_json),
+        source_template_id=original.source_template_id,
+        is_public=False,  # Duplicates are private by default
+        tags=copy.deepcopy(original.tags) if original.tags else []
+    )
+    
+    db.add(duplicate)
+    await db.commit()
+    await db.refresh(duplicate)
+    
+    return WorkflowResponse.model_validate(duplicate)
+
+@router.post("/{workflow_id}/publish", response_model=TemplateResponse, status_code=status.HTTP_201_CREATED)
+async def publish_workflow_as_template(
+    workflow_id: UUID,
+    template_data: TemplateCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Publish a workflow as a marketplace template"""
+    
+    # Verify workflow exists and user owns it
+    result = await db.execute(
+        select(Workflow).where(
+            Workflow.id == workflow_id,
+            Workflow.owner_id == current_user.id
+        )
+    )
+    workflow = result.scalar_one_or_none()
+    
+    if not workflow:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workflow not found"
+        )
+    
+    # Check if template already exists for this workflow
+    result = await db.execute(
+        select(Template).where(Template.workflow_id == workflow_id)
+    )
+    existing_template = result.scalar_one_or_none()
+    
+    if existing_template:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This workflow is already published as a template"
+        )
+    
+    # Create template
+    template = Template(
+        workflow_id=workflow_id,
+        author_id=current_user.id,
+        name=template_data.name,
+        description=template_data.description,
+        category=template_data.category,
+        tags=template_data.tags or [],
+        is_published=True
+    )
+    
+    db.add(template)
+    
+    # Update workflow status to published
+    workflow.status = 'published'
+    
+    await db.commit()
+    await db.refresh(template)
+    
+    return TemplateResponse.model_validate(template)
+
 @router.post("/{workflow_id}/run", response_model=WorkflowRunResponse)
 async def run_workflow(
     workflow_id: UUID,
@@ -167,11 +301,16 @@ async def run_workflow(
     workflow_run = WorkflowRun(
         workflow_id=workflow_id,
         thread_id=thread_id,
-        status=RunStatus.RUNNING,
+        status=RunStatus.RUNNING.value,
         input_summary=run_data.input[:200] if run_data.input else None
     )
 
     db.add(workflow_run)
+    
+    # Update workflow last_run_at
+    from datetime import datetime
+    workflow.last_run_at = datetime.utcnow()
+    
     await db.commit()
     await db.refresh(workflow_run)
 
@@ -185,7 +324,7 @@ async def run_workflow(
         id=workflow_run.id,
         workflow_id=workflow_run.workflow_id,
         thread_id=workflow_run.thread_id,
-        status=workflow_run.status.value,
+        status=workflow_run.status if isinstance(workflow_run.status, str) else workflow_run.status.value,
         input_summary=workflow_run.input_summary,
         started_at=workflow_run.started_at,
         finished_at=workflow_run.finished_at,
@@ -267,7 +406,7 @@ async def _execute_and_stream(thread_id_str: str, input_text: str):
             result = await session.execute(select(WorkflowRun).where(WorkflowRun.thread_id == UUID(thread_id_str)))
             run = result.scalar_one_or_none()
             if run:
-                run.status = RunStatus.COMPLETED
+                run.status = RunStatus.COMPLETED.value
                 session.add(run)
                 await session.commit()
 
@@ -285,7 +424,7 @@ async def _execute_and_stream(thread_id_str: str, input_text: str):
                 result = await session.execute(select(WorkflowRun).where(WorkflowRun.thread_id == UUID(thread_id_str)))
                 run = result.scalar_one_or_none()
                 if run:
-                    run.status = RunStatus.FAILED
+                    run.status = RunStatus.FAILED.value
                     session.add(run)
                     await session.commit()
         except Exception:
