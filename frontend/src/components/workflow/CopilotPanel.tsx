@@ -17,9 +17,6 @@ import { CopilotDiagnostics } from '@/components/workflow/CopilotDiagnostics'
 import { CopilotPromptTemplate } from '@/components/workflow/CopilotPromptTemplate'
 import { CopilotStreamDisplay } from '@/components/workflow/CopilotStreamDisplay'
 import { CopilotHistory } from '@/components/workflow/CopilotHistory'
-import { TemplateEditorWithPreview } from '@/components/workflow/TemplatePreview'
-import { ContextManagerComponent } from '@/components/workflow/ContextManager'
-import { createSystemContext, VariableContext } from '@/lib/template-engine'
 import {
   Sparkles,
   Send,
@@ -33,8 +30,6 @@ import {
   Search,
   Zap,
   Clock,
-  FileText,
-  Sliders,
   Paperclip,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -82,22 +77,13 @@ export function CopilotPanel({
 
   const [inputValue, setInputValue] = useState('')
   const [isExpanded, setIsExpanded] = useState(true)
-  const [activeTab, setActiveTab] = useState<'chat' | 'stream' | 'history' | 'template' | 'context'>('chat')
+  const [activeTab, setActiveTab] = useState<'chat' | 'stream' | 'history'>('chat')
   const [agentMode, setAgentMode] = useState<'agent' | 'ask'>('agent')
   const [modelChoice, setModelChoice] = useState<string>('auto')
   const [showAgentMenu, setShowAgentMenu] = useState(false)
   const [showModelMenu, setShowModelMenu] = useState(false)
   const [llmOptions, setLlmOptions] = useState<LLMConfig[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  // 模板状态
-  const [template, setTemplate] = useState('请为 {{workflowName}} 工作流建议一个 {{feature}} 功能。\n\n要求：\n- {{requirement1}}\n- {{requirement2}}')
-  const [templateContext, setTemplateContext] = useState<VariableContext>(createSystemContext({
-    workflowName: '我的工作流',
-    feature: 'RAG 搜索',
-    requirement1: '支持向量搜索',
-    requirement2: '结果可排序'
-  }))
 
   const storage = useSuggestionStorage()
 
@@ -194,8 +180,6 @@ export function CopilotPanel({
       {/* 标题栏 */}
       <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-purple-50 to-blue-50 rounded-t-lg">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-purple-600" />
-          <h3 className="font-semibold text-gray-900 text-sm">Copilot 助手</h3>
         </div>
         <div className="flex items-center gap-2">
           {/* 标签页选择器 */}
@@ -234,30 +218,6 @@ export function CopilotPanel({
             >
               <Clock className="h-3 w-3" />
               历史
-            </button>
-            <button
-              onClick={() => setActiveTab('template')}
-              className={cn(
-                'px-2 py-1 text-xs font-medium rounded transition-colors flex items-center gap-1',
-                activeTab === 'template'
-                  ? 'bg-green-100 text-green-700'
-                  : 'text-gray-600 hover:text-gray-900'
-              )}
-            >
-              <FileText className="h-3 w-3" />
-              模板
-            </button>
-            <button
-              onClick={() => setActiveTab('context')}
-              className={cn(
-                'px-2 py-1 text-xs font-medium rounded transition-colors flex items-center gap-1',
-                activeTab === 'context'
-                  ? 'bg-purple-100 text-purple-700'
-                  : 'text-gray-600 hover:text-gray-900'
-              )}
-            >
-              <Sliders className="h-3 w-3" />
-              上下文
             </button>
           </div>
 
@@ -467,19 +427,19 @@ export function CopilotPanel({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-gray-600 gap-3">
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
+                <div className="flex items-center justify-start text-xs text-gray-600 gap-2 flex-nowrap">
+                  <div className="flex items-center gap-2 flex-nowrap">
+                    <div className="relative flex-shrink-0">
                       <button
                         type="button"
                         onClick={() => setShowAgentMenu((v) => !v)}
-                        className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 hover:border-purple-300 hover:text-foreground transition-colors"
+                        className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 whitespace-nowrap hover:text-purple-600 transition-colors text-sm"
                       >
                         {agentMode === 'agent' ? 'Agent' : 'Ask'}
                         <ChevronDown className="h-3 w-3" />
                       </button>
                       {showAgentMenu && (
-                        <div className="absolute left-0 top-full mt-1 w-28 rounded-lg border border-gray-200 bg-white shadow-lg z-30">
+                        <div className="absolute left-0 top-full mt-1 w-28 rounded-lg bg-transparent z-30">
                           {[
                             { label: 'Agent', value: 'agent' },
                             { label: 'Ask', value: 'ask' },
@@ -499,19 +459,19 @@ export function CopilotPanel({
                       )}
                     </div>
 
-                    <div className="relative">
+                    <div className="relative flex-shrink-0 min-w-0">
                       <button
                         type="button"
                         onClick={() => setShowModelMenu((v) => !v)}
-                        className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 hover:border-purple-300 hover:text-foreground transition-colors"
+                        className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 whitespace-nowrap hover:text-purple-600 transition-colors text-sm max-w-[200px] truncate"
                       >
                         {modelChoice === 'auto'
                           ? 'Auto'
                           : llmOptions.find((o) => o.model_name === modelChoice)?.display_name || modelChoice}
-                        <ChevronDown className="h-3 w-3" />
+                        <ChevronDown className="h-3 w-3 flex-shrink-0" />
                       </button>
                       {showModelMenu && (
-                        <div className="absolute left-0 top-full mt-1 w-56 rounded-lg border border-gray-200 bg-white shadow-lg z-30 max-h-60 overflow-auto">
+                        <div className="absolute left-0 top-full mt-1 w-56 rounded-lg bg-transparent z-30 max-h-60 overflow-auto">
                           <button
                             onClick={() => {
                               setModelChoice('auto')
@@ -538,22 +498,15 @@ export function CopilotPanel({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 text-gray-600 hover:text-foreground hover:border-purple-300 hover:bg-purple-50 transition-colors"
-                      title="设置"
-                    >
-                      <Sliders className="h-4 w-4" />
-                    </button>
+                  <div className="ml-auto flex items-center gap-2 ">
                     <Button
                       type="button"
                       onClick={handleSend}
                       disabled={!inputValue.trim() || isLoading}
                       size="icon"
-                      className="h-10 w-10 rounded-full bg-purple-600 hover:bg-purple-700"
+                      className="px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
                     >
-                      <Send className="h-4 w-4" />
+                      <Send className="h-5 w-5" />
                     </Button>
                   </div>
                 </div>
@@ -613,8 +566,7 @@ export function CopilotPanel({
               <div className="border-t border-gray-200 p-3 bg-white">
                 <div className="space-y-2">
                   <div className="flex gap-2">
-                    <input
-                      type="text"
+                    <textarea
                       placeholder="输入自定义问题或按 Enter 发送..."
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
@@ -625,17 +577,16 @@ export function CopilotPanel({
                         }
                       }}
                       disabled={streamLoading}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400 text-sm"
+                      rows={3}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400 text-sm resize-none"
                     />
                     <button
-                      onClick={() => {
-                        setInputValue('')
-                        resetStream()
-                      }}
-                      className="px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="清除"
+                      onClick={handleSend}
+                      disabled={!inputValue.trim() || streamLoading}
+                      className="px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                      title="发送"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Send className="w-5 h-5" />
                     </button>
                   </div>
                   
@@ -678,45 +629,6 @@ export function CopilotPanel({
               }}
               className="flex-1"
             />
-          )}
-
-          {/* 模板标签页 */}
-          {activeTab === 'template' && (
-            <div className="flex-1 p-4 overflow-auto">
-              <TemplateEditorWithPreview
-                template={template}
-                onTemplateChange={setTemplate}
-                context={templateContext}
-                onContextChange={setTemplateContext}
-                onSend={(content) => {
-                  // 将渲染后的内容发送到聊天
-                  setInputValue(content)
-                  setActiveTab('chat')
-                }}
-                className="h-full"
-              />
-            </div>
-          )}
-
-          {/* 上下文标签页 */}
-          {activeTab === 'context' && (
-            <div className="flex-1 p-4 overflow-auto">
-              <ContextManagerComponent
-                nodes={getContext().nodes || []}
-                edges={getContext().edges || []}
-                metadata={{
-                  workflowId,
-                  nodeCount: getContext().nodeCount || 0,
-                  edgeCount: getContext().edgeCount || 0
-                }}
-                onContextChange={(context) => {
-                  // 上下文变化时的回调，可以用于更新全局状态
-                  console.log('Context updated:', context)
-                }}
-                layout="horizontal"
-                className="h-full"
-              />
-            </div>
           )}
         </div>
       )}

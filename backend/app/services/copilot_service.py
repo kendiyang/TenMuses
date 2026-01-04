@@ -73,13 +73,6 @@ class WorkflowDiagnosisResult(BaseModel):
     summary: str
 
 
-class PromptTemplate(BaseModel):
-    """生成的提示词模板"""
-    prompt: str
-    style: str  # "structured" | "detailed" | "concise"
-    estimated_tokens: int
-
-
 # ============================================================================
 # Copilot Service
 # ============================================================================
@@ -426,92 +419,6 @@ class CopilotService:
         except Exception as e:
             logger.error(f"Failed to diagnose workflow: {e}", exc_info=True)
             return WorkflowDiagnosisResult(diagnostics=[], score=0, summary="诊断失败")
-
-    # ========================================================================
-    # Prompt Template Generation
-    # ========================================================================
-
-    async def generate_prompt_template(
-        self,
-        task_description: str,
-        input_format: str = "text",
-        output_format: str = "text",
-        examples: List[Dict[str, str]] = None,
-        style: str = "structured",
-    ) -> PromptTemplate:
-        """
-        为 LLM 节点生成提示词模板
-        
-        Args:
-            task_description: 任务描述
-            input_format: 输入格式描述
-            output_format: 输出格式描述
-            examples: 示例列表
-            style: 提示词风格 (structured | detailed | concise)
-            
-        Returns:
-            生成的提示词模板
-        """
-        examples_str = ""
-        if examples:
-            examples_str = "\n\n示例：\n" + "\n".join(
-                [f"输入: {e['input']}\n输出: {e['output']}" for e in examples]
-            )
-
-        prompt = f"""根据以下信息生成一个高质量的 LLM 提示词模板：
-
-任务: {task_description}
-输入格式: {input_format}
-输出格式: {output_format}
-风格: {style}
-{examples_str}
-
-请生成一个清晰、详细的提示词。使用 {{{{INPUT}}}} 作为输入占位符。
-
-返回格式（用 ```prompt``` 包围）：
-```prompt
-[你的提示词]
-```
-
-确保提示词：
-1. 清晰定义任务
-2. 提供具体的指导
-3. 包含输入/输出格式说明
-4. 如果适用，包含示例"""
-
-        messages = [
-            SystemMessage(content=self.system_prompt),
-            HumanMessage(content=prompt),
-        ]
-
-        try:
-            # 使用新的 LLMClient 调用
-            response = await llm_client.invoke(
-                messages,
-                model_id=self.model_id if self.model_id else None,
-                provider=self.provider if not self.model_id else None,
-                model=self.model if not self.model_id else None,
-                temperature=0.7,
-                max_tokens=1500,
-            )
-            content = response.content if hasattr(response, 'content') else str(response)
-
-            # 解析提示词
-            prompt_content = self._extract_code_block(content, "prompt")
-            if not prompt_content:
-                prompt_content = content  # 如果没有代码块，直接使用内容
-
-            # 估计 token 数
-            estimated_tokens = len(prompt_content.split()) * 1.3  # 粗略估计
-
-            return PromptTemplate(
-                prompt=prompt_content.strip(),
-                style=style,
-                estimated_tokens=int(estimated_tokens),
-            )
-        except Exception as e:
-            logger.error(f"Failed to generate prompt template: {e}", exc_info=True)
-            raise
 
     # ========================================================================
     # 辅助方法

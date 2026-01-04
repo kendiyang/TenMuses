@@ -16,26 +16,12 @@ export interface WorkflowSummary {
 export interface WorkspaceStatistics {
   total_workflows: number;
   total_runs: number;
-  total_templates: number;
-}
-
-export interface FeaturedTemplate {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  tags?: string[];
-  icon_url?: string;
-  rating: number;
-  use_count: number;
-  favorite_count: number;
 }
 
 interface WorkspaceState {
   // Data
   recentWorkflows: WorkflowSummary[];
   statistics: WorkspaceStatistics | null;
-  featuredTemplates: FeaturedTemplate[];
   
   // Loading states
   isLoadingOverview: boolean;
@@ -55,7 +41,6 @@ interface WorkspaceState {
 const initialState = {
   recentWorkflows: [],
   statistics: null,
-  featuredTemplates: [],
   isLoadingOverview: false,
   isLoadingRecent: false,
   overviewError: null,
@@ -74,7 +59,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       set({
         recentWorkflows: data.recent_workflows || [],
         statistics: data.statistics || null,
-        featuredTemplates: data.featured_templates || [],
         isLoadingOverview: false,
       });
     } catch (error: any) {

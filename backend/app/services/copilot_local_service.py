@@ -83,13 +83,6 @@ class WorkflowDiagnosisResult(BaseModel):
     summary: str
 
 
-class PromptTemplate(BaseModel):
-    """生成的提示词模板"""
-    prompt: str
-    style: str  # "structured" | "detailed" | "concise"
-    estimated_tokens: int
-
-
 # ============================================================================
 # Copilot Local Service
 # ============================================================================
